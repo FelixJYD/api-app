@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class UserController extends Controller
 {
@@ -13,11 +14,40 @@ class UserController extends Controller
         return User::all();
     }
 
-    // Método para crear un nuevo usuario
-    public function store(Request $request)
+    // Método para registrar un nuevo usuario
+    public function register(Request $request)
     {
-        $user = User::create($request->all());
-        return response()->json($user, 201);
+        // Validar los datos de entrada
+        $request->validate([
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6',
+        ]);
+
+        // Crear un nuevo usuario
+        $user = new User();
+        $user->email = $request->email;
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        return response()->json(['user' => $user], 201);
+    }
+
+    // Método para iniciar sesión
+    public function login(Request $request)
+    {
+        // Validar los datos de entrada
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        // Intentar iniciar sesión
+        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            $user = Auth::user();
+            return response()->json(['user' => $user], 200);
+        } else {
+            return response()->json(['message' => 'Credenciales inválidas'], 401);
+        }
     }
 
     // Método para mostrar un usuario específico
